@@ -1,0 +1,17 @@
+{
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+   "semi": ["error", "always"],
+   "no-console": 0
+  },
+  "globals": {
+      "define": true,
+      "require": true,
+      "module": true,
+      "createWindow": true
+  }
+}
