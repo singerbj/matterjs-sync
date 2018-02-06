@@ -17,6 +17,20 @@
         Matter.Engine.run(engine);
         Matter.Render.run(render);
 
+        engine.addBody = function(body) {
+            console.log(body);
+            body.serialize = serialize;
+            Matter.World.add(engine.world, body);
+        };
+        engine.applyForce = function(body, force) {
+            Matter.Body.applyForce(body, body.position, force);
+        };
+        engine.getWorldState = function(){
+            return engine.world.bodies.map(function(body){
+                return body.serialize();
+            });
+        };
+
         var animate = function() {
             raf(animate);
             if (beforeCallback) {
@@ -29,13 +43,16 @@
         };
         animate();
 
-        return {
-            addBody: function(body) {
-                Matter.World.add(engine.world, body);
-            },
-            applyForce: function(body, force) {
-                Matter.Body.applyForce(body, body.position, force);
-            }
+        var serialize = function(){
+            return {
+                i: this.id,
+                p: this.position,
+                a: this.angle,
+                v: this.v,
+                av: this.angularVelocity
+            };
         };
+
+        return engine;
     };
 })();

@@ -5,16 +5,32 @@
     var Engine = require("./engine");
     var Networking = require("./networking");
 
-    var engine = new Engine();
+    var clientMessages = [];
+    var serverMessages = [];
+
     var networkPromise = new Networking(
         function(data) {
-            console.log(data);
+            clientMessages.push(JSON.parse(data));
         },
         function(data) {
-            console.log(data);
+            serverMessages.push(JSON.parse(data));
         }
     );
     networkPromise.then(function(network) {
+        var engine = new Engine(function(engine){
+            //update world
+
+            //get last message to client and update the clients state from the server state
+        }, function(engine){
+            if(network.server){
+                var state = engine.getWorldState();
+                console.log(state);
+                network.server.clients.forEach(function(client){
+                    client.send(JSON.stringify(state));
+                });
+            }
+        });
+
         console.log(network);
 
         var player = Matter.Bodies.circle(50, 50, 20);
