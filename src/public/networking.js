@@ -2,54 +2,72 @@
 (function() {
     var WebSocket = require("ws");
     var q = require("q");
-    module.exports = function(onClientMessage, onServerMessage) {
+
+    var networkSetup = function(clientFunctions, serverFunctions, startServer) {
         var deferred = q.defer();
         var server;
-        var startServer = function() {
+        if(startServer){
             server = new WebSocket.Server({
                 port: 6574
             });
-            server.on("connection", function(c) {
-                c.on("message", function(data) {
-                    if (onClientMessage) {
-                        onClientMessage(data);
+            server.on("connection", function(client) {
+                if (serverFunctions && serverFunctions.onConnection) {
+                    serverFunctions.onConnection(client);
+                }
+                client.on("message", function(data) {
+                    if (serverFunctions && serverFunctions.onMessage) {
+                        serverFunctions.onMessage(data);
                     }
                 });
-                c.once("close", function() {
+                client.once("close", function() {
                     console.log("close");
+                    if (serverFunctions && serverFunctions.onClose) {
+                        serverFunctions.onClose();
+                    }
                 });
-                c.on("error", function(err) {
+                client.on("error", function(err) {
                     console.log(err);
-                });
-
-                deferred.resolve({
-                    client: client,
-                    server: server
+                    if (serverFunctions && serverFunctions.onError) {
+                        serverFunctions.onError(err);
+                    }
                 });
             });
-        };
+        }
 
         var client = new WebSocket("ws://127.0.0.1:6574");
         client.on("error", function() {
             console.log("Error connecting to server...starting one.");
-            startServer();
+            networkSetup(clientFunctions, serverFunctions, true).then(function(network){
+                deferred.resolve(network);
+            });
+        });
+        client.on("open", function() {
+            console.log(client);
+            console.log("Connected");
+            if (clientFunctions && clientFunctions.onConnection) {
+                clientFunctions.onConnection();
+            }
+            client.on("message", function(data) {
+                if (clientFunctions && clientFunctions.onMessage) {
+                    clientFunctions.onMessage(data);
+                }
+            });
+            client.on("close", function() {
+                console.log("Connection closed");
+                if (clientFunctions && clientFunctions.onClose) {
+                    clientFunctions.onClose();
+                }
+            });
             deferred.resolve({
                 client: client,
                 server: server
             });
         });
-        client.on("open", function() {
-            console.log("Connected");
-            client.on("message", function(data) {
-                if (onServerMessage) {
-                    onServerMessage(data);
-                }
-            });
-            client.on("close", function() {
-                console.log("Connection closed");
-            });
-        });
 
         return deferred.promise;
+    };
+
+    module.exports = function(onClientMessage, onServerMessage){
+        return networkSetup(onClientMessage, onServerMessage);
     };
 })();
