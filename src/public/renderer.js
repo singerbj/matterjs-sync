@@ -23,6 +23,7 @@
     var player;
     var mouseX = 0;
     var mouseY = 0;
+    var angle = 0;
     var bodies = [];
 
     var networkPromise = new Networking({
@@ -84,9 +85,14 @@
                     //     y: netYV
                     // });
                     Matter.Body.applyForce(player, player.position, {
-                        x: netXV / 25000,
-                        y: netYV / 25000
+                        x: netXV / 100000,
+                        y: netYV / 100000
                     });
+                    Matter.Body.set(player, 'angle', Math.atan2(mouseY - player.position.y, mouseX - player.position.x));
+                    // Matter.Body.set(player, 'position', {
+                    //     x: player.position.x + netXV,
+                    //     y: player.position.y + netYV,
+                    // });
                 } else {
                     var found = engine.getBodyByUUID(player);
                     if(found){
@@ -121,16 +127,15 @@
         engineCreatedDeferred.resolve();
 
         if(network.server){
-            var rand = function (min, max) {
-                return Math.floor(Math.random() * (max - min)) + min;
-            };
+            var wall;
             for(var i = 0; i < 10; i+=1){
-                engine.addBody(Matter.Bodies.rectangle(rand(0,800), rand(0,500), 19, 43));
+                wall = Matter.Bodies.rectangle(Helpers.rand(0,800), Helpers.rand(0,800), 19, 43);
+                engine.addBody(wall);
             }
         }
     });
 
-    var renderer = PIXI.autoDetectRenderer(800, 600,{backgroundColor : 0x1099bb});
+    var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, {backgroundColor : 0x1099bb});
     var stage = new PIXI.Container();
     document.body.appendChild(renderer.view);
 
@@ -156,10 +161,6 @@
     // start animating
     var animate = function () {
         raf(animate);
-    	// for(var b in bunnies) {
-    	// 	bunnies[b].sprite.position = bunnies[b].body.position;
-    	// 	bunnies[b].sprite.rotation = bunnies[b].body.angle;
-    	// }
         for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
         bodies.forEach(function(body){
             stage.addChild(createSpriteObject(body));
@@ -169,9 +170,9 @@
     };
     animate();
 
-    window.onmousemove = function (e) {
-        mouseX = e.offsetX * window.devicePixelRatio;
-        mouseY = e.offsetY * window.devicePixelRatio;
+    renderer.view.onmousemove = function (e) {
+        mouseX = e.offsetX;// * window.devicePixelRatio;
+        mouseY = e.offsetY;// * window.devicePixelRatio;
     };
 
     window.onkeydown = function(e) {

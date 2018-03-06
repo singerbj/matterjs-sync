@@ -7,6 +7,8 @@
         // create a Matter.js engine
 
         var engine = Matter.Engine.create();
+        engine.timing.isFixed = true;
+        // engine.velocityIterations = 1;
         engine.world.gravity.y = 0;
         // create a Matter.js renderer
         // var render = Matter.Render.create({
@@ -73,35 +75,24 @@
                 Matter.Body.set(found, 'position', message.s.p);
                 Matter.Body.set(found, 'angle', message.s.a);
                 Matter.Body.set(found, 'velocity', message.s.v);
-                //Matter.Body.set(found, 'velocity', {
-                //     x: 100 * Math.sin(engine.timing.timestamp * message.s.v.x),
-                //     y: 100 * Math.sin(engine.timing.timestamp * message.s.v.y)
-                // });
                 Matter.Body.set(found, 'angularVelocity', message.s.av);
             }
         };
-
-        var lastTimeFps;
-        var fps = -1;
-        var lastFpsDraw = Date.now();
-        var currentTime;
-        var animate = function() {
+        Matter.Events.on(engine, "beforeTick", function(){
+            engine.timing.lastTimestamp = engine.timing.timestamp;
+        });
+        Matter.Events.on(engine, 'beforeUpdate', function(event) {
             if (beforeCallback) {
                 beforeCallback(engine);
             }
-            Matter.Engine.update(engine);
+        });
+        Matter.Events.on(engine, 'afterUpdate', function(event) {
             if (afterCallback) {
                 afterCallback(engine);
             }
-            currentTime = Date.now();
-            if (lastTimeFps && (currentTime - lastFpsDraw) > 500) {
-                lastFpsDraw = currentTime;
-                fps = Math.floor(1000 / (currentTime - lastTimeFps));
-            }
-            lastTimeFps = currentTime;
-            raf(animate);
-        };
-        animate();
+        });
+        var runner = Matter.Runner.create();
+        Matter.Runner.run(runner, engine);
 
         var serialize = function(){
             return {
