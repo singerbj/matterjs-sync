@@ -6,6 +6,8 @@
     var Engine = require("./engine");
     var Networking = require("./networking");
     var Helpers = require("./helpers");
+    var raf = require("raf");
+    require('../../node_modules/pixi.js/dist/pixi.min.js');
 
     var clientMessages = [];
     var serverMessages = [];
@@ -19,6 +21,9 @@
     var engineCreatedDeferred = q.defer();
     var engineCreatedPromise = engineCreatedDeferred.promise;
     var player;
+    var mouseX = 0;
+    var mouseY = 0;
+    var bodies = [];
 
     var networkPromise = new Networking({
         onMessage: function(data) {
@@ -32,7 +37,7 @@
     }, {
         onConnection: function(client){
             engineCreatedPromise.then(function(){
-                var newPlayer = Matter.Bodies.circle(150, 150, 20);
+                var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
                 newPlayer.uuid = Helpers.getUUID();
                 client.uuid = newPlayer.uuid;
                 engine.addBody(newPlayer);
@@ -54,6 +59,8 @@
             }
             clientMessages = [];
 
+            bodies = engine.world.bodies;
+
             //update all the players' states on the server
             if(network.server){
                 serverMessages.forEach(function(message){
@@ -72,9 +79,13 @@
             if(moving.right) netXV += 0.5;
             if(player){
                 if(player.uuid){
-                    Matter.Body.set(player, 'velocity', {
-                        x: netXV,
-                        y: netYV
+                    // Matter.Body.set(player, 'velocity', {
+                    //     x: netXV,
+                    //     y: netYV
+                    // });
+                    Matter.Body.applyForce(player, player.position, {
+                        x: netXV / 25000,
+                        y: netYV / 25000
                     });
                 } else {
                     var found = engine.getBodyByUUID(player);
@@ -113,11 +124,55 @@
             var rand = function (min, max) {
                 return Math.floor(Math.random() * (max - min)) + min;
             };
-            for(var i = 0; i < 100; i+=1){
-                engine.addBody(Matter.Bodies.circle(rand(0,800), rand(0,500), 20));
+            for(var i = 0; i < 10; i+=1){
+                engine.addBody(Matter.Bodies.rectangle(rand(0,800), rand(0,500), 19, 43));
             }
         }
     });
+
+    var renderer = PIXI.autoDetectRenderer(800, 600,{backgroundColor : 0x1099bb});
+    var stage = new PIXI.Container();
+    document.body.appendChild(renderer.view);
+
+    var imageUrl = '../sprites/PNG/Hitman 1/hitman1_gun.png';
+    var texture = PIXI.Texture.fromImage(imageUrl);
+
+    var createSpriteObject = function (body) {
+    	// create a new Sprite using the texture
+    	var sprite = new PIXI.Sprite(texture);
+        sprite.height = 43;
+        sprite.width = 49;
+
+    	// center the sprite's anchor point
+    	sprite.anchor.x = 0.38775510204;
+    	sprite.anchor.y = 0.5;
+    	// move the sprite to the center of the screen
+    	sprite.position = body.position;
+        sprite.rotation = body.angle;
+
+    	return sprite;
+    };
+
+    // start animating
+    var animate = function () {
+        raf(animate);
+    	// for(var b in bunnies) {
+    	// 	bunnies[b].sprite.position = bunnies[b].body.position;
+    	// 	bunnies[b].sprite.rotation = bunnies[b].body.angle;
+    	// }
+        for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
+        bodies.forEach(function(body){
+            stage.addChild(createSpriteObject(body));
+        });
+    	// render the container
+    	renderer.render(stage);
+    };
+    animate();
+
+    window.onmousemove = function (e) {
+        mouseX = e.offsetX * window.devicePixelRatio;
+        mouseY = e.offsetY * window.devicePixelRatio;
+    };
 
     window.onkeydown = function(e) {
         if (e.key.toLowerCase() === "w") {

@@ -9,13 +9,13 @@
         var engine = Matter.Engine.create();
         engine.world.gravity.y = 0;
         // create a Matter.js renderer
-        var render = Matter.Render.create({
-            element: document.body,
-            engine: engine
-        });
+        // var render = Matter.Render.create({
+        //     element: document.body,
+        //     engine: engine
+        // });
 
         Matter.Engine.run(engine);
-        Matter.Render.run(render);
+        // Matter.Render.run(render);
 
         engine.addBody = function(body) {
             body.serialize = serialize;
@@ -53,7 +53,7 @@
                             found.uuid = body.uuid;
                         }
                     }else{
-                        newBody = Matter.Bodies.circle(body.p.x, body.p.y, 20);
+                        newBody = Matter.Bodies.rectangle(body.p.x, body.p.y, 19, 43);
                         newBody.lastUpdate = state.ts;
                         Matter.Body.set(newBody, 'angle', body.a);
                         Matter.Body.set(newBody, 'velocity', body.v);
@@ -73,6 +73,10 @@
                 Matter.Body.set(found, 'position', message.s.p);
                 Matter.Body.set(found, 'angle', message.s.a);
                 Matter.Body.set(found, 'velocity', message.s.v);
+                //Matter.Body.set(found, 'velocity', {
+                //     x: 100 * Math.sin(engine.timing.timestamp * message.s.v.x),
+                //     y: 100 * Math.sin(engine.timing.timestamp * message.s.v.y)
+                // });
                 Matter.Body.set(found, 'angularVelocity', message.s.av);
             }
         };
@@ -82,7 +86,6 @@
         var lastFpsDraw = Date.now();
         var currentTime;
         var animate = function() {
-            raf(animate);
             if (beforeCallback) {
                 beforeCallback(engine);
             }
@@ -96,6 +99,7 @@
                 fps = Math.floor(1000 / (currentTime - lastTimeFps));
             }
             lastTimeFps = currentTime;
+            raf(animate);
         };
         animate();
 
