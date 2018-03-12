@@ -1,4 +1,4 @@
-/*global window, document, TextDecoder, setTimeout, console*/
+/*global window, document, TextDecoder, setTimeout, console, PIXI*/
 (function() {
     // Matter.js module aliases
     var q = require("q");
@@ -7,13 +7,13 @@
     var Networking = require("./networking");
     var Helpers = require("./helpers");
     var raf = require("raf");
-    require('../../node_modules/pixi.js/dist/pixi.min.js');
+    require("../../node_modules/pixi.js/dist/pixi.min.js");
 
     var clientMessages = [];
     var serverMessages = [];
     var moving = {
         up: false,
-        down:false,
+        down: false,
         left: false,
         right: false
     };
@@ -27,164 +27,178 @@
     var angle = 0;
     var bodies = [];
 
-    var networkPromise = new Networking({
-        onMessage: function(data) {
-            var parsed = JSON.parse(data);
-            if(parsed.uuid){
-                player = parsed.uuid;
-            }else{
-                clientMessages.push(parsed);
-            }
-        }
-    }, {
-        onConnection: function(client){
-            engineCreatedPromise.then(function(){
-                // var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
-                // newPlayer.uuid = Helpers.getUUID();
-                // client.uuid = newPlayer.uuid;
-                // engine.addBody(newPlayer);
-                // client.send(JSON.stringify({ uuid: newPlayer.uuid }));
-                //
-                uuid = Helpers.getUUID();
-                client.uuid = uuid;
-                client.send(JSON.stringify({ uuid: uuid }));
-            });
-        },
-        onMessage: function(data) {
-            serverMessages.push(JSON.parse(data));
-        }
-    });
-    networkPromise.then(function(network) {
-        engine = new Engine(function(engine){
-            //update world
-            //get last message to client and update the clients state from the server state
-            var lastMessage = clientMessages[clientMessages.length - 1];
-            var state = lastMessage ? lastMessage.s : undefined;
-            if(state){
-                engine.applyWorldState(state, player);
-            }
-            clientMessages = [];
-
-            bodies = engine.world.bodies;
-
-            //update all the players' states on the server
-            if(network.server){
-                serverMessages.forEach(function(message){
-                    if(message.uuid !== player.uuid){
-                        engine.applyPlayerState(message);
-                    }
-                });
-            }
-
-            // change things according to user input
-            var netXV = 0;
-            var netYV = 0;
-            if(moving.up) netYV -= 0.5;
-            if(moving.down) netYV += 0.5;
-            if(moving.left) netXV -= 0.5;
-            if(moving.right) netXV += 0.5;
-            if(player){
-                if(player.uuid){
-                    // Matter.Body.set(player, 'velocity', {
-                    //     x: netXV,
-                    //     y: netYV
-                    // });
-                    Matter.Body.applyForce(player, player.position, {
-                        x: netXV / 100000,
-                        y: netYV / 100000
-                    });
-                    Matter.Body.set(player, 'angle', angle);
-                    // Matter.Body.set(player, 'position', {
-                    //     x: player.position.x + netXV,
-                    //     y: player.position.y + netYV,
-                    // });
+    var networkPromise = new Networking(
+        {
+            onMessage: function(data) {
+                var parsed = JSON.parse(data);
+                if (parsed.uuid) {
+                    player = parsed.uuid;
                 } else {
-                    var found = engine.getBodyByUUID(player);
-                    if(found){
-                        player = found;
-                    }else{
-                        player = Matter.Bodies.rectangle(150, 150, 19, 43);
-                        player.uuid = Helpers.getUUID();
-                        engine.addBody(player);
-                    }
+                    clientMessages.push(parsed);
                 }
             }
-            serverMessages = [];
-        }, function(engine){
-            if(player && player.id && player.serialize){
-                var playerState = {
-                    ts: Date.now(),
-                    s: player.serialize()
-                };
-                player.states ? player.states.push(playerState) : player.states = [playerState];
-                player.states.splice(0, player.states.length - 30);
-                network.client.send(JSON.stringify(playerState));
-            }
-            if(network.server){
-                var state = engine.getWorldState();
-                network.server.clients.forEach(function(client){
-                    client.send(JSON.stringify({
-                        ts: Date.now(),
-                        s: state
-                    }));
+        },
+        {
+            onConnection: function(client) {
+                engineCreatedPromise.then(function() {
+                    // var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
+                    // newPlayer.uuid = Helpers.getUUID();
+                    // client.uuid = newPlayer.uuid;
+                    // engine.addBody(newPlayer);
+                    // client.send(JSON.stringify({ uuid: newPlayer.uuid }));
+                    //
+                    uuid = Helpers.getUUID();
+                    client.uuid = uuid;
+                    client.send(JSON.stringify({ uuid: uuid }));
                 });
+            },
+            onMessage: function(data) {
+                serverMessages.push(JSON.parse(data));
             }
-        });
+        }
+    );
+    networkPromise.then(function(network) {
+        engine = new Engine(
+            function(engine) {
+                //update world
+                //get last message to client and update the clients state from the server state
+                var lastMessage = clientMessages[clientMessages.length - 1];
+                var state = lastMessage ? lastMessage.s : undefined;
+                if (state) {
+                    engine.applyWorldState(state, player);
+                }
+                clientMessages = [];
+
+                bodies = engine.world.bodies;
+
+                //update all the players' states on the server
+                if (network.server) {
+                    serverMessages.forEach(function(message) {
+                        if (message.uuid !== player.uuid) {
+                            engine.applyPlayerState(message);
+                        }
+                    });
+                }
+
+                // change things according to user input
+                var netXV = 0;
+                var netYV = 0;
+                if (moving.up) netYV -= 0.01;
+                if (moving.down) netYV += 0.01;
+                if (moving.left) netXV -= 0.01;
+                if (moving.right) netXV += 0.01;
+                if (player) {
+                    if (player.uuid) {
+                        // Matter.Body.set(player, 'velocity', {
+                        //     x: netXV,
+                        //     y: netYV
+                        // });
+                        // Matter.Body.applyForce(player, player.position, {
+                        //     x: netXV / 100000,
+                        //     y: netYV / 100000
+                        // });
+                        Matter.Body.set(player, "angle", angle);
+                        Matter.Body.set(player, "position", {
+                            x: player.position.x + netXV * (engine.timing.timestamp - engine.timing.lastTimestamp),
+                            y: player.position.y + netYV * (engine.timing.timestamp - engine.timing.lastTimestamp)
+                        });
+                        console.log({
+                            xC: netXV * (engine.timing.timestamp - engine.timing.lastTimestamp),
+                            yC: netYV * (engine.timing.timestamp - engine.timing.lastTimestamp)
+                        });
+                    } else {
+                        var found = engine.getBodyByUUID(player);
+                        if (found) {
+                            player = found;
+                        } else {
+                            player = Matter.Bodies.rectangle(150, 150, 19, 43);
+                            player.uuid = Helpers.getUUID();
+                            engine.addBody(player);
+                        }
+                    }
+                }
+                serverMessages = [];
+            },
+            function(engine) {
+                if (player && player.id && player.serialize) {
+                    var playerState = {
+                        ts: Date.now(),
+                        s: player.serialize()
+                    };
+                    player.states ? player.states.push(playerState) : (player.states = [playerState]);
+                    player.states.splice(0, player.states.length - 30);
+                    network.client.send(JSON.stringify(playerState));
+                }
+                if (network.server) {
+                    var state = engine.getWorldState();
+                    network.server.clients.forEach(function(client) {
+                        client.send(
+                            JSON.stringify({
+                                ts: Date.now(),
+                                s: state
+                            })
+                        );
+                    });
+                }
+            }
+        );
 
         engineCreatedDeferred.resolve();
 
-        if(network.server){
+        if (network.server) {
             var wall;
-            for(var i = 0; i < 10; i+=1){
-                wall = Matter.Bodies.rectangle(Helpers.rand(0,800), Helpers.rand(0,800), 19, 43);
+            for (var i = 0; i < 10; i += 1) {
+                wall = Matter.Bodies.rectangle(Helpers.rand(0, 800), Helpers.rand(0, 800), 19, 43);
                 engine.addBody(wall);
             }
         }
     });
 
-    var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, {backgroundColor : 0x1099bb});
+    var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, { backgroundColor: 0x1099bb });
     var stage = new PIXI.Container();
     document.body.appendChild(renderer.view);
 
-    var imageUrl = '../sprites/PNG/Hitman 1/hitman1_gun.png';
+    var imageUrl = "../sprites/PNG/Hitman 1/hitman1_gun.png";
     var texture = PIXI.Texture.fromImage(imageUrl);
 
-    var createSpriteObject = function (body) {
-    	// create a new Sprite using the texture
-    	var sprite = new PIXI.Sprite(texture);
+    var createSpriteObject = function(body) {
+        // create a new Sprite using the texture
+        var sprite = new PIXI.Sprite(texture);
         sprite.height = 43;
         sprite.width = 49;
-    	// center the sprite's anchor point
-    	sprite.anchor.x = 0.38775510204;
-    	sprite.anchor.y = 0.5;
-    	// move the sprite to the center of the screen
-    	sprite.position = body.position;
+        // center the sprite's anchor point
+        sprite.anchor.x = 0.38775510204;
+        sprite.anchor.y = 0.5;
+        // move the sprite to the center of the screen
+        sprite.position = body.position;
         sprite.rotation = body.angle;
-    	return sprite;
+        return sprite;
     };
 
     // start animating
-    var animate = function () {
+    var animate = function() {
         raf(animate);
-        if(player && player.position){
-            stage.pivot.x = (player.position.x - renderer.view.width / 2);
-            stage.pivot.y = (player.position.y - renderer.view.height / 2);
+        if (player && player.position) {
+            stage.pivot.x = player.position.x - renderer.view.width / 2;
+            stage.pivot.y = player.position.y - renderer.view.height / 2;
         }
 
-        for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
-        bodies.forEach(function(body){
+        for (var i = stage.children.length - 1; i >= 0; i--) {
+            stage.removeChild(stage.children[i]);
+        }
+        bodies.forEach(function(body) {
             stage.addChild(createSpriteObject(body));
         });
-    	// render the container
-    	renderer.render(stage);
+        // render the container
+        renderer.render(stage);
     };
     animate();
 
-    renderer.view.onmousemove = function (e) {
-        if(player){
+    renderer.view.onmousemove = function(e) {
+        if (player) {
             mouseX = player.position.x + (e.offsetX - renderer.view.width / 2);
             mouseY = player.position.y + (e.offsetY - renderer.view.height / 2);
-            angle = Math.atan2(mouseY - player.position.y, mouseX - player.position.x)
+            angle = Math.atan2(mouseY - player.position.y, mouseX - player.position.x);
         }
     };
 
@@ -212,13 +226,13 @@
         }
     };
 
-    window.onresize = function (event){
+    window.onresize = function() {
         var w = window.innerWidth;
         var h = window.innerHeight;
         //this part resizes the canvas but keeps ratio the same
         renderer.view.style.width = w + "px";
         renderer.view.style.height = h + "px";
         //this part adjusts the ratio:
-        renderer.resize(w,h);
-    }
+        renderer.resize(w, h);
+    };
 })();
