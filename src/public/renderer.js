@@ -20,6 +20,7 @@
     var engine;
     var engineCreatedDeferred = q.defer();
     var engineCreatedPromise = engineCreatedDeferred.promise;
+    var uuid;
     var player;
     var mouseX = 0;
     var mouseY = 0;
@@ -38,11 +39,15 @@
     }, {
         onConnection: function(client){
             engineCreatedPromise.then(function(){
-                var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
-                newPlayer.uuid = Helpers.getUUID();
-                client.uuid = newPlayer.uuid;
-                engine.addBody(newPlayer);
-                client.send(JSON.stringify({ uuid: newPlayer.uuid }));
+                // var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
+                // newPlayer.uuid = Helpers.getUUID();
+                // client.uuid = newPlayer.uuid;
+                // engine.addBody(newPlayer);
+                // client.send(JSON.stringify({ uuid: newPlayer.uuid }));
+                //
+                uuid = Helpers.getUUID();
+                client.uuid = uuid;
+                client.send(JSON.stringify({ uuid: uuid }));
             });
         },
         onMessage: function(data) {
@@ -88,7 +93,7 @@
                         x: netXV / 100000,
                         y: netYV / 100000
                     });
-                    Matter.Body.set(player, 'angle', Math.atan2(mouseY - player.position.y, mouseX - player.position.x));
+                    Matter.Body.set(player, 'angle', angle);
                     // Matter.Body.set(player, 'position', {
                     //     x: player.position.x + netXV,
                     //     y: player.position.y + netYV,
@@ -98,7 +103,9 @@
                     if(found){
                         player = found;
                     }else{
-                        console.log('error finding player body');
+                        player = Matter.Bodies.rectangle(150, 150, 19, 43);
+                        player.uuid = Helpers.getUUID();
+                        engine.addBody(player);
                     }
                 }
             }
@@ -147,20 +154,23 @@
     	var sprite = new PIXI.Sprite(texture);
         sprite.height = 43;
         sprite.width = 49;
-
     	// center the sprite's anchor point
     	sprite.anchor.x = 0.38775510204;
     	sprite.anchor.y = 0.5;
     	// move the sprite to the center of the screen
     	sprite.position = body.position;
         sprite.rotation = body.angle;
-
     	return sprite;
     };
 
     // start animating
     var animate = function () {
         raf(animate);
+        if(player && player.position){
+            stage.pivot.x = (player.position.x - renderer.view.width / 2);
+            stage.pivot.y = (player.position.y - renderer.view.height / 2);
+        }
+
         for (var i = stage.children.length - 1; i >= 0; i--) {	stage.removeChild(stage.children[i]);};
         bodies.forEach(function(body){
             stage.addChild(createSpriteObject(body));
@@ -171,8 +181,11 @@
     animate();
 
     renderer.view.onmousemove = function (e) {
-        mouseX = e.offsetX;// * window.devicePixelRatio;
-        mouseY = e.offsetY;// * window.devicePixelRatio;
+        if(player){
+            mouseX = player.position.x + (e.offsetX - renderer.view.width / 2);
+            mouseY = player.position.y + (e.offsetY - renderer.view.height / 2);
+            angle = Math.atan2(mouseY - player.position.y, mouseX - player.position.x)
+        }
     };
 
     window.onkeydown = function(e) {
@@ -198,4 +211,14 @@
             moving.right = false;
         }
     };
+
+    window.onresize = function (event){
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        //this part resizes the canvas but keeps ratio the same
+        renderer.view.style.width = w + "px";
+        renderer.view.style.height = h + "px";
+        //this part adjusts the ratio:
+        renderer.resize(w,h);
+    }
 })();
