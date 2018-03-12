@@ -20,7 +20,6 @@
     var engine;
     var engineCreatedDeferred = q.defer();
     var engineCreatedPromise = engineCreatedDeferred.promise;
-    var uuid;
     var player;
     var mouseX = 0;
     var mouseY = 0;
@@ -41,15 +40,11 @@
         {
             onConnection: function(client) {
                 engineCreatedPromise.then(function() {
-                    // var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
-                    // newPlayer.uuid = Helpers.getUUID();
-                    // client.uuid = newPlayer.uuid;
-                    // engine.addBody(newPlayer);
-                    // client.send(JSON.stringify({ uuid: newPlayer.uuid }));
-                    //
-                    uuid = Helpers.getUUID();
-                    client.uuid = uuid;
-                    client.send(JSON.stringify({ uuid: uuid }));
+                    var newPlayer = Matter.Bodies.rectangle(150, 150, 19, 43);
+                    newPlayer.uuid = Helpers.getUUID();
+                    client.uuid = newPlayer.uuid;
+                    engine.addBody(newPlayer);
+                    client.send(JSON.stringify({ uuid: newPlayer.uuid }));
                 });
             },
             onMessage: function(data) {
@@ -83,28 +78,16 @@
                 // change things according to user input
                 var netXV = 0;
                 var netYV = 0;
-                if (moving.up) netYV -= 0.01;
-                if (moving.down) netYV += 0.01;
-                if (moving.left) netXV -= 0.01;
-                if (moving.right) netXV += 0.01;
+                if (moving.up) netYV -= 0.15;
+                if (moving.down) netYV += 0.15;
+                if (moving.left) netXV -= 0.15;
+                if (moving.right) netXV += 0.15;
                 if (player) {
                     if (player.uuid) {
-                        // Matter.Body.set(player, 'velocity', {
-                        //     x: netXV,
-                        //     y: netYV
-                        // });
-                        // Matter.Body.applyForce(player, player.position, {
-                        //     x: netXV / 100000,
-                        //     y: netYV / 100000
-                        // });
                         Matter.Body.set(player, "angle", angle);
                         Matter.Body.set(player, "position", {
-                            x: player.position.x + netXV * (engine.timing.timestamp - engine.timing.lastTimestamp),
-                            y: player.position.y + netYV * (engine.timing.timestamp - engine.timing.lastTimestamp)
-                        });
-                        console.log({
-                            xC: netXV * (engine.timing.timestamp - engine.timing.lastTimestamp),
-                            yC: netYV * (engine.timing.timestamp - engine.timing.lastTimestamp)
+                            x: player.position.x + netXV * (engine.timing.time - engine.timing.lastTime),
+                            y: player.position.y + netYV * (engine.timing.time - engine.timing.lastTime)
                         });
                     } else {
                         var found = engine.getBodyByUUID(player);

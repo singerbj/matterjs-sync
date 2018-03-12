@@ -79,7 +79,8 @@
             }
         };
         Matter.Events.on(engine, "beforeTick", function() {
-            engine.timing.lastTimestamp = engine.timing.timestamp;
+            engine.timing.lastTime = engine.timing.time;
+            engine.timing.time = Date.now();
         });
         Matter.Events.on(engine, "beforeUpdate", function() {
             if (beforeCallback) {
