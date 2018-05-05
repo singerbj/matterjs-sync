@@ -9,15 +9,15 @@
         var engine = Matter.Engine.create();
         engine.timing.isFixed = false;
         // engine.velocityIterations = 1;
-        engine.world.gravity.y = 0;
+        engine.world.gravity.y = 0.005;
         // create a Matter.js renderer
-        // var render = Matter.Render.create({
-        //     element: document.body,
-        //     engine: engine
-        // });
+        var render = Matter.Render.create({
+            element: document.body,
+            engine: engine
+        });
 
         Matter.Engine.run(engine);
-        // Matter.Render.run(render);
+        Matter.Render.run(render);
 
         engine.addBody = function(body) {
             body.serialize = serialize;

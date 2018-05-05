@@ -78,8 +78,8 @@
                 // change things according to user input
                 var netXV = 0;
                 var netYV = 0;
-                if (moving.up) netYV -= 0.15;
-                if (moving.down) netYV += 0.15;
+                // if (moving.up) netYV -= 0.15;
+                // if (moving.down) netYV += 0.15;
                 if (moving.left) netXV -= 0.15;
                 if (moving.right) netXV += 0.15;
                 if (player) {
@@ -89,6 +89,9 @@
                             x: player.position.x + netXV * (engine.timing.time - engine.timing.lastTime),
                             y: player.position.y + netYV * (engine.timing.time - engine.timing.lastTime)
                         });
+                        if (moving.up) {
+                            Matter.Body.applyForce(player, player.position, { x: 0, y: -0.00005 })
+                        }
                     } else {
                         var found = engine.getBodyByUUID(player);
                         if (found) {
@@ -129,7 +132,10 @@
         engineCreatedDeferred.resolve();
 
         if (network.server) {
-            var wall;
+            var wall = Matter.Bodies.rectangle(0, 550, 550 * 3, 100);
+            Matter.Body.setStatic(wall, true);
+            engine.addBody(wall);
+
             for (var i = 0; i < 10; i += 1) {
                 wall = Matter.Bodies.rectangle(Helpers.rand(0, 800), Helpers.rand(0, 800), 19, 43);
                 engine.addBody(wall);
@@ -137,58 +143,69 @@
         }
     });
 
-    var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, { backgroundColor: 0x1099bb });
-    var stage = new PIXI.Container();
-    document.body.appendChild(renderer.view);
+    // var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, { backgroundColor: 0x1099bb });
+    // var stage = new PIXI.Container();
+    // document.body.appendChild(renderer.view);
+    //
+    // var imageUrl = "../sprites/PNG/Hitman 1/hitman1_gun.png";
+    // var textures = {
+    //     player: PIXI.Texture.fromImage(imageUrl)
+    // }
+    //
+    // var createSpriteObject = function(body) {
+    //     // create a new Sprite using the texture
+    //     var sprite = new PIXI.Sprite(textures.player);
+    //     sprite.height = 43;
+    //     sprite.width = 49;
+    //     // center the sprite's anchor point
+    //     sprite.anchor.x = 0.38775510204;
+    //     sprite.anchor.y = 0.5;
+    //     // move the sprite to the center of the screen
+    //     sprite.position = body.position;
+    //     sprite.rotation = body.angle;
+    //     return sprite;
+    // };
+    //
+    // var pixiMap = {};
+    // // start animating
+    // var animate = function() {
+    //     raf(animate);
+    //     if (player && player.position) {
+    //         stage.pivot.x = player.position.x - renderer.view.width / 2;
+    //         stage.pivot.y = player.position.y - renderer.view.height / 2;
+    //     }
+    //
+    //     bodies.forEach(function(body) {
+    //         if(pixiMap[body.id]){
+    //             pixiMap[body.id].position = body.position;
+    //             pixiMap[body.id].rotation = body.angle;
+    //         }else{
+    //             pixiMap[body.id] = createSpriteObject(body);
+    //             stage.addChild(pixiMap[body.id]);
+    //         }
+    //     });
+    //     // render the container
+    //     renderer.render(stage);
+    // };
+    // animate();
 
-    var imageUrl = "../sprites/PNG/Hitman 1/hitman1_gun.png";
-    var texture = PIXI.Texture.fromImage(imageUrl);
+    // renderer.view.onmousemove = function(e) {
+    //     if (player) {
+    //         mouseX = player.position.x + (e.offsetX - renderer.view.width / 2);
+    //         mouseY = player.position.y + (e.offsetY - renderer.view.height / 2);
+    //         angle = Math.atan2(mouseY - player.position.y, mouseX - player.position.x);
+    //     }
+    // };
 
-    var createSpriteObject = function(body) {
-        // create a new Sprite using the texture
-        var sprite = new PIXI.Sprite(texture);
-        sprite.height = 43;
-        sprite.width = 49;
-        // center the sprite's anchor point
-        sprite.anchor.x = 0.38775510204;
-        sprite.anchor.y = 0.5;
-        // move the sprite to the center of the screen
-        sprite.position = body.position;
-        sprite.rotation = body.angle;
-        return sprite;
-    };
-
-    // start animating
-    var animate = function() {
-        raf(animate);
-        if (player && player.position) {
-            stage.pivot.x = player.position.x - renderer.view.width / 2;
-            stage.pivot.y = player.position.y - renderer.view.height / 2;
-        }
-
-        for (var i = stage.children.length - 1; i >= 0; i--) {
-            stage.removeChild(stage.children[i]);
-        }
-        bodies.forEach(function(body) {
-            stage.addChild(createSpriteObject(body));
-        });
-        // render the container
-        renderer.render(stage);
-    };
-    animate();
-
-    renderer.view.onmousemove = function(e) {
-        if (player) {
-            mouseX = player.position.x + (e.offsetX - renderer.view.width / 2);
-            mouseY = player.position.y + (e.offsetY - renderer.view.height / 2);
-            angle = Math.atan2(mouseY - player.position.y, mouseX - player.position.x);
+    window.onkeypress = function(e){
+        console.log(e)
+;        if (e.key.toLowerCase() === "w") {
+            moving.up = true;
         }
     };
 
     window.onkeydown = function(e) {
-        if (e.key.toLowerCase() === "w") {
-            moving.up = true;
-        } else if (e.key.toLowerCase() === "a") {
+     if (e.key.toLowerCase() === "a") {
             moving.left = true;
         } else if (e.key.toLowerCase() === "s") {
             moving.down = true;
